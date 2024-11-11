@@ -3,15 +3,17 @@ package main
 import (
 	"fmt"
 	"github.com/eiannone/keyboard"
+	"math/rand"
 	"time"
 )
 
 type Game struct {
-	Board     *Board
-	Snake     *Snake
-	IsEnd     bool
-	FrameRate int
-	Scores    int
+	Board  *Board
+	Snake  *Snake
+	Food   *Food
+	IsEnd  bool
+	FPS    int
+	Scores int
 
 	keyCh chan keyboard.Key
 }
@@ -21,8 +23,9 @@ func (g *Game) InitGame() {
 	height := 10
 	g.Board = CreateBoard(width, height)
 	g.Snake = CreateSnake(height/2, width/2)
+	g.Food = CreateFood(2, 4)
 	g.IsEnd = false
-	g.FrameRate = 5
+	g.FPS = 5
 	g.Scores = 0
 
 	g.keyCh = make(chan keyboard.Key, 3)
@@ -50,14 +53,35 @@ func (g *Game) ReadKeyBoard() {
 	}
 }
 
+func randomInt(min, max int) int {
+	r := rand.New(rand.NewSource(time.Now().UnixNano())) // 创建新的随机数生成器并设置种子
+	return r.Intn(max-min+1) + min
+}
+
 func (g *Game) UpdateLogic() {
 	g.Snake.MoveSnake()
 	if g.CheckWallCollision() {
 		g.IsEnd = true
+	} else if g.CheckFoodCollision() {
+		g.Scores += g.Food.Value
+		newX := randomInt(0, g.Board.Height)
+		newY := randomInt(0, g.Board.Width)
+
+		for g.Snake.IsInside(newX, newY) {
+			newX = randomInt(0, g.Board.Height)
+			newY = randomInt(0, g.Board.Width)
+		}
+		g.Food.Location.X = newX
+		g.Food.Location.Y = newY
+		return
 	}
+	g.Snake.Body = g.Snake.Body[:len(g.Snake.Body)-1]
 }
 
 func (g *Game) DrawFrame() {
+	// 刷新界面
+	fmt.Print("\033[H\033[2J")
+
 	// 绘制顶部边界
 	for y := 0; y < g.Board.Width+2; y++ {
 		fmt.Printf("*")
@@ -69,6 +93,8 @@ func (g *Game) DrawFrame() {
 		for y := 0; y < g.Board.Width; y++ {
 			if g.Snake.IsInside(x, y) {
 				row += "+"
+			} else if g.Food.Location.X == x && g.Food.Location.Y == y {
+				row += "."
 			} else {
 				row += " "
 			}
@@ -89,8 +115,15 @@ func (g *Game) CheckWallCollision() bool {
 	return head.X < 0 || head.X >= g.Board.Height || head.Y < 0 || head.Y >= g.Board.Width
 }
 
+func (g *Game) CheckFoodCollision() bool {
+	head := g.Snake.Body[0]
+
+	return g.Food.Location.X == head.X && g.Food.Location.Y == head.Y
+}
+
 func (g *Game) StartGame() {
-	frameDuration := time.Second / time.Duration(g.FrameRate)
+
+	frameDuration := time.Second / time.Duration(g.FPS)
 	ticker := time.NewTicker(frameDuration)
 
 	defer ticker.Stop()
@@ -100,7 +133,6 @@ func (g *Game) StartGame() {
 	for !g.IsEnd {
 		select {
 		case <-ticker.C:
-			fmt.Print("\033[H\033[2J")
 			g.ReadKeyBoard()
 			g.UpdateLogic()
 			g.DrawFrame()

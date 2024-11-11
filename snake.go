@@ -84,5 +84,5 @@ func (snake *Snake) MoveSnake() {
 
 	// 更新蛇的身体
 	// 蛇身体的移动是将蛇尾去掉，蛇头插入新的位
-	snake.Body = append([]Point{head}, snake.Body[:len(snake.Body)-1]...)
+	snake.Body = append([]Point{head}, snake.Body[:len(snake.Body)]...)
 }

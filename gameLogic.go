@@ -60,14 +60,14 @@ func randomInt(min, max int) int {
 
 func (g *Game) UpdateLogic() {
 	g.Snake.MoveSnake()
-	if g.CheckWallCollision() {
+	if g.CheckWallCollision() || g.CheckSelfCollision() {
 		g.IsEnd = true
 	} else if g.CheckFoodCollision() {
 		g.Scores += g.Food.Value
 		newX := randomInt(0, g.Board.Height)
 		newY := randomInt(0, g.Board.Width)
 
-		for g.Snake.IsInside(newX, newY) {
+		for g.Snake.IsInside(newX, newY, g.Snake.Body) {
 			newX = randomInt(0, g.Board.Height)
 			newY = randomInt(0, g.Board.Width)
 		}
@@ -91,7 +91,7 @@ func (g *Game) DrawFrame() {
 	for x := 0; x < g.Board.Height; x++ {
 		row := "*"
 		for y := 0; y < g.Board.Width; y++ {
-			if g.Snake.IsInside(x, y) {
+			if g.Snake.IsInside(x, y, g.Snake.Body) {
 				row += "+"
 			} else if g.Food.Location.X == x && g.Food.Location.Y == y {
 				row += "."
@@ -119,6 +119,12 @@ func (g *Game) CheckFoodCollision() bool {
 	head := g.Snake.Body[0]
 
 	return g.Food.Location.X == head.X && g.Food.Location.Y == head.Y
+}
+
+func (g *Game) CheckSelfCollision() bool {
+	head := g.Snake.Body[0]
+
+	return g.Snake.IsInside(head.X, head.Y, g.Snake.Body[1:])
 }
 
 func (g *Game) StartGame() {

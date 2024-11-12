@@ -36,8 +36,8 @@ func CreateSnake(startX, startY int) *Snake {
 	return snake
 }
 
-func (snake *Snake) IsInside(x, y int) bool {
-	for _, p := range snake.Body {
+func (snake *Snake) IsInside(x, y int, body []Point) bool {
+	for _, p := range body {
 		if p.X == x && p.Y == y {
 			return true
 		}
